@@ -17,6 +17,7 @@ package mp3
 import (
 	"fmt"
 	"io"
+	"math"
 
 	"github.com/kecbigmt/go-mp3/internal/consts"
 	"github.com/kecbigmt/go-mp3/internal/frame"
@@ -34,8 +35,9 @@ type Decoder struct {
 	buf         []byte
 	frame       *frame.Frame
 	pos         int64
-	bitrate     int
-	duration    int
+	size        int64 // total file size[bytes] of all MP3 frames(header + data)
+	bitrate     int // audio bitrate[bps]
+	duration    int // audio duration[sec]
 }
 
 func (d *Decoder) readFrame() error {
@@ -135,6 +137,11 @@ func (d *Decoder) Duration() int {
 	return d.duration
 }
 
+// Size returns the total file size[bytes] of all MP3 frames(header + data) like 7336675(7.3MB).
+func (d *Decoder) Size() int64 {
+	return d.size
+}
+
 func (d *Decoder) ensureFrameStartsAndLength() error {
 	if d.length != invalidLength {
 		return nil
@@ -157,6 +164,7 @@ func (d *Decoder) ensureFrameStartsAndLength() error {
 		return err
 	}
 	l := int64(0)
+	s := int64(0)
 	for {
 		h, pos, err := frameheader.Read(d.source, d.source.pos)
 		if err != nil {
@@ -173,7 +181,9 @@ func (d *Decoder) ensureFrameStartsAndLength() error {
 		l += consts.BytesPerFrame
 
 		buf := make([]byte, h.FrameSize()-4)
-		if _, err := d.source.ReadFull(buf); err != nil {
+		n, err := d.source.ReadFull(buf)
+		s += (int64)(n) + 4
+		if err != nil {
 			if err == io.EOF {
 				break
 			}
@@ -181,10 +191,11 @@ func (d *Decoder) ensureFrameStartsAndLength() error {
 		}
 	}
 	d.length = l
+	d.size = s
 
-	// set audio duration
-	// NOTE: This caluclation is incorrect for mp3 encoded in CBR
-	d.duration = 8*(int)(d.length)/d.bitrate
+	// Set Audio Duration(rounded int)
+	// NOTE: This caluclation is incorrect for mp3 encoded in VBR
+	d.duration = int(math.Floor(8.0*float64(s)/float64(d.bitrate) + .5))
 
 	if _, err := d.source.Seek(pos, io.SeekStart); err != nil {
 		return err
@@ -231,7 +242,6 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 		return nil, err
 	}
 	bitrate := frameheader.Bitrate(h.Layer(), h.BitrateIndex())
-	fmt.Println(bitrate)
 	d.bitrate = bitrate
 
 	if err := d.ensureFrameStartsAndLength(); err != nil {
