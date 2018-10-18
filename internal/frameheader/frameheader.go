@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hajimehoshi/go-mp3/internal/consts"
+	"github.com/kecbigmt/go-mp3/internal/consts"
 )
 
 // A mepg1FrameHeader is MPEG1 Layer 1-3 frame header
@@ -125,7 +125,7 @@ func (f FrameHeader) IsValid() bool {
 	return true
 }
 
-func bitrate(layer consts.Layer, index int) int {
+func Bitrate(layer consts.Layer, index int) int {
 	switch layer {
 	case consts.Layer1:
 		return []int{
@@ -144,7 +144,7 @@ func bitrate(layer consts.Layer, index int) int {
 }
 
 func (f FrameHeader) FrameSize() int {
-	return (144*bitrate(f.Layer(), f.BitrateIndex()))/
+	return (144*Bitrate(f.Layer(), f.BitrateIndex()))/
 		f.SamplingFrequency().Int() +
 		int(f.PaddingBit())
 }

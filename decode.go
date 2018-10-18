@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hajimehoshi/go-mp3/internal/consts"
-	"github.com/hajimehoshi/go-mp3/internal/frame"
-	"github.com/hajimehoshi/go-mp3/internal/frameheader"
+	"github.com/kecbigmt/go-mp3/internal/consts"
+	"github.com/kecbigmt/go-mp3/internal/frame"
+	"github.com/kecbigmt/go-mp3/internal/frameheader"
 )
 
 // A Decoder is a MP3-decoded stream.
@@ -34,6 +34,7 @@ type Decoder struct {
 	buf         []byte
 	frame       *frame.Frame
 	pos         int64
+	bitrate     int64
 }
 
 func (d *Decoder) readFrame() error {
@@ -123,6 +124,11 @@ func (d *Decoder) SampleRate() int {
 	return d.sampleRate
 }
 
+// Bitrate returns the audio bitrate like 192000bps(192kbps).
+func (d *Decoder) Bitrate() int64 {
+	return d.bitrate
+}
+
 func (d *Decoder) ensureFrameStartsAndLength() error {
 	if d.length != invalidLength {
 		return nil
@@ -208,6 +214,14 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 		return nil, err
 	}
 	d.sampleRate = d.frame.SamplingFrequency()
+
+	// Set Bitrate
+	h, _, err := frameheader.Read(s, s.pos)
+	if err != nil {
+		return nil, err
+	}
+	bitrate := frameheader.Bitrate(h.Layer(), h.BitrateIndex())
+	d.sampleRate = bitrate
 
 	if err := d.ensureFrameStartsAndLength(); err != nil {
 		return nil, err

@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hajimehoshi/go-mp3/internal/bits"
-	"github.com/hajimehoshi/go-mp3/internal/consts"
-	"github.com/hajimehoshi/go-mp3/internal/frameheader"
-	"github.com/hajimehoshi/go-mp3/internal/sideinfo"
+	"github.com/kecbigmt/go-mp3/internal/bits"
+	"github.com/kecbigmt/go-mp3/internal/consts"
+	"github.com/kecbigmt/go-mp3/internal/frameheader"
+	"github.com/kecbigmt/go-mp3/internal/sideinfo"
 )
 
 type FullReader interface {
