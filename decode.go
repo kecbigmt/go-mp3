@@ -34,7 +34,8 @@ type Decoder struct {
 	buf         []byte
 	frame       *frame.Frame
 	pos         int64
-	bitrate     int64
+	bitrate     int
+	duration    int
 }
 
 func (d *Decoder) readFrame() error {
@@ -125,8 +126,13 @@ func (d *Decoder) SampleRate() int {
 }
 
 // Bitrate returns the audio bitrate like 192000bps(192kbps).
-func (d *Decoder) Bitrate() int64 {
+func (d *Decoder) Bitrate() int {
 	return d.bitrate
+}
+
+// Duration returns the audio duration(sec) like 182(3:02).
+func (d *Decoder) Duration() int {
+	return d.duration
 }
 
 func (d *Decoder) ensureFrameStartsAndLength() error {
@@ -176,6 +182,10 @@ func (d *Decoder) ensureFrameStartsAndLength() error {
 	}
 	d.length = l
 
+	// set audio duration
+	// NOTE: This caluclation is incorrect for mp3 encoded in CBR
+	d.duration = 8*(int)(d.length)/d.bitrate
+
 	if _, err := d.source.Seek(pos, io.SeekStart); err != nil {
 		return err
 	}
@@ -221,7 +231,8 @@ func NewDecoder(r io.ReadCloser) (*Decoder, error) {
 		return nil, err
 	}
 	bitrate := frameheader.Bitrate(h.Layer(), h.BitrateIndex())
-	d.sampleRate = bitrate
+	fmt.Println(bitrate)
+	d.bitrate = bitrate
 
 	if err := d.ensureFrameStartsAndLength(); err != nil {
 		return nil, err
